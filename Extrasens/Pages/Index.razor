@@ -3,194 +3,211 @@
 @page "/"
 <div>
     <div class="extra-block">
-        <div style="display:@hidden;" class="block-1">
-            <h1>Тестирование экстрасенсов</h1>
+        @if (div1)
+        {
+            <div class="block-1">
+                <h1>Тестирование экстрасенсов</h1>
 
-            <h2>Загадайте число от 10 до 99 и нажмите на кнопку</h2>
-            <button class="btn-success @dis" @onclick="RepMysе">Загадал</button>
-        </div>
-        <div style="display: @hidden1;" class="block-1">
-            <div class="psychics">
-                <div class="psychic @status[0]">
-                    <h4>Экстрасенс X</h4>
-                    <h4>@guessNumb[0]</h4>
-                    <h4>Рейтинг: @rate[0]</h4>
-                </div>
-                <div class="psychic @status[1]">
-                    <h4>Экстрасенс Y</h4>
-                    <h4>@guessNumb[1]</h4>
-                    <h4>Рейтинг: @rate[1]</h4>
-                </div>
-                <div class="psychic @status[2]">
-                    <h4>Экстрасенс Z</h4>
-                    <h4>@guessNumb[2]</h4>
-                    <h4>Рейтинг: @rate[2]</h4>
-                </div>
+                <h2>Загадайте число от 10 до 99 и нажмите на кнопку</h2>
+                <button class="btn-success" @onclick="GetPredict">Загадал</button>
             </div>
-            <h3>А теперь введите загаданное число</h3>
+        }
 
-            <input style="@dis" type="number" min="10" max="99" maxlength="2" @bind="@numb" @onkeypress="TextInput" />
-            <button class="btn-success" style="@dis" @onclick="RepNumb">Отправить</button>
-            <button class="btn-success" style="@dis2" @onclick="Repeat">Загадать еще раз</button>
-        </div>
-        <div style="display: @hidden1;" class="block-1">
-            <h2 class="text-center">История</h2>
-            <table class="table table-striped">
-                <thead class="table-success">
-                    <tr>
-                        <th>Экстрасенс X</th>
-                        <th>Экстрасенс Y</th>
-                        <th>Экстрасенс Z</th>
-                        <th>Ваше число</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var h in history)
-                    {
+        else
+        {
+            <div class="block-1">
+                <div class="psychics">
+                    <div class="psychic @psychicX.ResponseStatus">
+                        <h4>Экстрасенс X</h4>
+                        <h4>@psychicX.PredictNumber</h4>
+                        <h4>Рейтинг: @psychicX.PsychicRaiting</h4>
+                    </div>
+                    <div class="psychic @psychicY.ResponseStatus">
+                        <h4>Экстрасенс Y</h4>
+                        <h4>@psychicY.PredictNumber</h4>
+                        <h4>Рейтинг: @psychicY.PsychicRaiting</h4>
+                    </div>
+                    <div class="psychic @psychicZ.ResponseStatus">
+                        <h4>Экстрасенс Z</h4>
+                        <h4>@psychicZ.PredictNumber</h4>
+                        <h4>Рейтинг: @psychicZ.PsychicRaiting</h4>
+                    </div>
+                </div>
+
+                @if (div2)
+                {
+                    <h3>Введите загаданное число</h3>
+                    <input type="number" min="10" max="99" maxlength="2" @bind="@userNumber" />
+                    <button class="btn-success" @onclick="CheckPredict">Отправить</button>
+                }
+                else
+                {
+                    <button class="btn-success" @onclick="Repeat">Загадать еще раз</button>
+                }
+            </div>
+
+            <div class="block-1">
+                <h2 class="text-center">История</h2>
+                <table class="table table-striped">
+                    <thead class="table-success">
                         <tr>
-                            <td>@h.e1</td>
-                            <td>@h.e2</td>
-                            <td>@h.e3</td>
-                            <td>@h.uNumb</td>
+                            <th>Экстрасенс X</th>
+                            <th>Экстрасенс Y</th>
+                            <th>Экстрасенс Z</th>
+                            <th>Ваше число</th>
                         </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var itemHistory in predictHistory)
+                        {
+                            <tr>
+                                <td>@itemHistory.Predict1</td>
+                                <td>@itemHistory.Predict2</td>
+                                <td>@itemHistory.Predict3</td>
+                                <td>@itemHistory.UNumb</td>
+                            </tr>
 
-                    }
+                        }
 
-                </tbody>
-            </table>
-        </div>
+                    </tbody>
+                </table>
+                @if (predictHistory.Count != 0)
+                {
+                    <button class="btn-danger" @onclick="DeleteSession">Удалить все данные</button>
+                }
+            </div>
+        }
     </div>
 </div>
 
 
 @code{
 
+    @* CSS Params start*@
+    bool div1 = true;
+    bool div2 = true;
+    @* CSS Params end*@
+
+    List<PredictionHistory> predictHistory;
+    Psychic psychicX;
+    Psychic psychicY;
+    Psychic psychicZ;
+    int userNumber = 10;
 
 
 
-    @*List<History> historyBack = new List<History>();
-        protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
+    {
+
+        predictHistory = await iLocalStorage.GetItemAsync<List<PredictionHistory>>("predictHistory");
+        if (predictHistory == null)
+        { predictHistory = new List<PredictionHistory>(); }
+
+        psychicX = await iLocalStorage.GetItemAsync<Psychic>("psychicX");
+        if (psychicX == null)
+        { psychicX = new Psychic(); }
+
+        psychicY = await iLocalStorage.GetItemAsync<Psychic>("psychicY");
+        if (psychicY == null)
+        { psychicY = new Psychic(); }
+
+        psychicZ = await iLocalStorage.GetItemAsync<Psychic>("psychicZ");
+        if (psychicZ == null)
+        { psychicZ = new Psychic(); }
+
+        div1 = await iLocalStorage.GetItemAsync<bool>("div1");
+        if (div1 == false && predictHistory.Count == 0)
+        { div1 = true; }
+        else
         {
-
-            historyBack = await iLocalStorage.GetItemAsync<List<History>>("history");
-            history = historyBack;
+            div1 = await iLocalStorage.GetItemAsync<bool>("div1");
         }
 
-        private async void SaveSession()
+        div2 = await iLocalStorage.GetItemAsync<bool>("div2");
+
+        userNumber = await iLocalStorage.GetItemAsync<int>("userNumber");
+        if (userNumber == 0)
+        { userNumber = 10; }
+    }
+
+    private async void SaveSession()
+    {
+        await iLocalStorage.SetItemAsync<List<PredictionHistory>>("predictHistory", predictHistory);
+        await iLocalStorage.SetItemAsync<Psychic>("psychicX", psychicX);
+        await iLocalStorage.SetItemAsync<Psychic>("psychicY", psychicY);
+        await iLocalStorage.SetItemAsync<Psychic>("psychicZ", psychicZ);
+        await iLocalStorage.SetItemAsync<bool>("div1", div1);
+        await iLocalStorage.SetItemAsync<bool>("div2", div2);
+        await iLocalStorage.SetItemAsync<int>("userNumber", userNumber);
+    }
+
+    private async void DeleteSession()
+    {
+        div1 = true;
+        div2 = true;
+        predictHistory = new List<PredictionHistory>();
+        await iLocalStorage.ClearAsync();
+    }
+
+
+
+    private void GetPredict()
+    {
+
+        foreach (Psychic psychic in Psychic.Objects)
         {
-
-            await iLocalStorage.SetItemAsync<List<History>>("history", history);
-            //await iLocalStorage.ClearAsync();
-        }*@
-Extrasens extX = new Extrasens();
-string dis = "";
-string dis2 = "display:none;";
-string hidden = "";
-string hidden1 = "none";
-int numb = 10;
-int x;
-int[] rate = new int[3] { 50, 50, 50 };
-int[] guessNumb = new int[6];
-string[] status = new string[3];
-
-List<History> history = new List<History>();
-
-
-
-private void TextInput()
-{
-    var value = numb;
-    if (value < 10)
-    {
-        numb = 10;
+            psychic.PredictionNumber();
+            psychic.ResponseStatus = "";
+        }
+        div1 = false;
+        div2 = true;
     }
-    else if (value > 99)
-    {
-        numb = 99;
-    }
-    else
-    {
-        numb = value;
-    }
-}
 
-private void RepMysе()
-{
-
-    for (int i = 0; i <= 2; i++)
+    private void CheckPredict()
     {
-        guessNumb[i] = extX.AbraKadabra();
-        status[i] = "";
-    }
-    hidden = "none";
-    hidden1 = "";
-}
 
-
-private void RepNumb()
-{
-    if (numb >= 10 && numb <= 99)
-    {
-        int y = -1;
-        x = 100;
-        for (int i = 3; i <= 5; ++i)
+        if (userNumber >= 10 && userNumber <= 99)
         {
-            guessNumb[i] = Math.Abs(numb - guessNumb[i - 3]);
-            if (guessNumb[i] < x)
+            foreach (Psychic psychic in Psychic.Objects)
             {
-                x = guessNumb[i];
-                y++;
+                if (psychic.PredictNumber == userNumber)
+                {
+                    psychic.PsychicRaiting++;
+                    psychic.ResponseStatus = "green";
+                }
+                else
+                {
+                    psychic.PsychicRaiting--;
+                    psychic.ResponseStatus = "";
+                }
             }
-        }
 
-        switch (y)
+            div2 = false;
+
+            predictHistory.Add(new PredictionHistory
+            {
+                Predict1 = psychicX.PredictNumber,
+                Predict2 = psychicY.PredictNumber,
+                Predict3 = psychicZ.PredictNumber,
+                UNumb = userNumber
+            });
+        }
+        else if (userNumber > 99)
         {
-            case 0:
-                rate[0] += 1;
-                rate[1] -= 1;
-                rate[2] -= 1;
-                status[0] = "green";
-                status[1] = "";
-                status[2] = "";
-
-                break;
-            case 1:
-                rate[0] -= 1;
-                rate[1] += 1;
-                rate[2] -= 1;
-                status[0] = "";
-                status[1] = "green";
-                status[2] = "";
-                break;
-            case 2:
-                rate[0] -= 1;
-                rate[1] -= 1;
-                rate[2] += 1;
-                status[0] = "";
-                status[1] = "";
-                status[2] = "green";
-                break;
+            userNumber = 99;
         }
-        dis = "display:none;";
-        dis2 = "";
+        else
+        {
+            userNumber = 10;
+        }
 
-        history.Add(new History { e1 = guessNumb[0], e2 = guessNumb[1], e3 = guessNumb[2], uNumb = numb });
+        SaveSession();
     }
-    else if (numb > 99)
+
+    private void Repeat()
     {
-        numb = 99;
+        GetPredict();
+        userNumber = 10;
     }
-    else { numb = 10; }
-    //SaveSession();
-}
-
-private void Repeat()
-{
-    RepMysе();
-    numb = 10;
-    dis = "";
-    dis2 = "display:none;";
-
-}
 }
 
